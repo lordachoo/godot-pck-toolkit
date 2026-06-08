@@ -59,3 +59,7 @@ it's how the tools report "valid compiled scripts" vs "byte-collisions."
 
 > Format details are version-specific and based on observation of Godot 4.x
 > builds; treat version/field specifics as "verify on your target," not gospel.
+
+See also: [`gdre-notes.md`](gdre-notes.md) for decompiling these to `.gd`, and
+[`how-pck-encryption-works.md`](how-pck-encryption-works.md) §5 for where `.gdc`
+fits into extraction.

@@ -1,7 +1,8 @@
 # Common Godot PCK encryption misconfigurations
 
 Real, frequently-seen mistakes that make "encrypted" builds far weaker than the
-developer thinks. Each is detectable with `check_encryption.py` (no key).
+developer thinks. Each is detectable with `check_encryption.py` (no key) — see
+[`verifying-encryption.md`](verifying-encryption.md) for the verification workflow.
 
 ## 1. Filters missing the `*` wildcard  ← the classic
 

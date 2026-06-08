@@ -57,3 +57,6 @@ engine version, the `--recover` path (with key) is usually more robust, and
 
 Releases: https://github.com/GDRETools/gdsdecomp/releases — grab the build for
 your platform. This toolkit does not bundle it.
+
+See also: [`gdc-format-notes.md`](gdc-format-notes.md) for the compiled-script
+layout and how to recover an exact-length `.gdc` for clean standalone decompile.

@@ -32,11 +32,15 @@ the dump is to take.
 - **Encrypt file *contents*, not just the index.** Set a broad
   `encryption_include_filters`, e.g.
   `*.gd,*.gdc,*.tscn,*.scn,*.res,*.tres,*.json,*.cfg,*.csv,*.gdshader`.
-  Empty filters = directory-only encryption = content-carvable. Leave bulk art
-  (`*.png`, `*.ogg`) unencrypted for load performance — it's low-value to hide.
-- **Verify it actually took**: the exported pack should grow ~1–2 MB, and
-  `GDSC`/`RSRC` magics in the body should drop to ~0. If the size doesn't change,
-  encryption isn't really on.
+  Empty filters (or filters without the leading `*`) = directory-only encryption
+  = content-carvable. Leave bulk art (`*.png`, `*.ogg`) unencrypted for load
+  performance — it's low-value to hide. (See
+  [`common-misconfigurations.md`](common-misconfigurations.md) for the exact ways
+  this is set wrong.)
+- **Verify it actually took**: the exported pack should grow (each encrypted file
+  gains a ~40-byte header + padding), and valid `GDSC` scripts in the body should
+  drop to 0. If the size doesn't change, encryption isn't really on. Use
+  [`verifying-encryption.md`](verifying-encryption.md) and `check_encryption.py`.
 - **Rotate a leaked key.** If a key has ever shipped in a cracked build, treat it
   as public: generate a new one (`openssl rand -hex 32`), rebuild templates, re-export.
 - **Move genuine secrets server-side.** Anti-cheat, economy/drop rules,
@@ -130,7 +134,8 @@ but they are **export-pipeline- and engine-version-sensitive**: they require the
 right `script_export_mode` so the obfuscator receives raw `.gd`, and abandoned/
 outdated addons may simply fail to load on current Godot. Treat obfuscation as a
 readability speed-bump on top of encryption, not a substitute — and verify on the
-*exported* build that identifiers are actually mangled.
+*exported* build that identifiers are actually mangled (see
+[`common-misconfigurations.md`](common-misconfigurations.md) §8).
 
 ## Recommended roadmap
 
@@ -145,6 +150,11 @@ readability speed-bump on top of encryption, not a substitute — and verify on 
 
 **Minimum to defeat the automated attack:** Tier 0 + **either** split-key/wipe
 **or** a packer. Doing both is belt-and-suspenders.
+
+For a condensed, actionable version of all of the above, see
+[`defenders-checklist.md`](defenders-checklist.md). For *why* the memory-dump
+route works regardless of key rotation, see
+[`memory-key-recovery.md`](memory-key-recovery.md).
 
 ## What NOT to rely on
 

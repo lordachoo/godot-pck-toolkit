@@ -77,11 +77,14 @@ encryption you must compile **custom export templates** from source with
 | **File contents** | `encrypt_pck` **+** `encryption_include_filters` → per-entry `PACK_FILE_ENCRYPTED` | the actual *bytes* of matching files |
 
 A critical, common misconfiguration: `encrypt_pck=true` with an **empty**
-`encryption_include_filters`. The result is **directory-only** encryption — the
-index is locked but **every file is stored in plaintext**. An attacker doesn't
-even need the key: they **signature-carve** the pack body for known magics
-(`GDSC` for compiled scripts, `RSRC`/`RSCC` for resources, `\x89PNG`, `OggS`, …)
-and pull files straight out.
+`encryption_include_filters` (or filters that lack the `*` wildcard). The result
+is **directory-only** encryption — the index is locked but **every file is stored
+in plaintext**. An attacker doesn't even need the key: they **signature-carve**
+the pack body for known magics (`GDSC` for compiled scripts, `RSRC`/`RSCC` for
+resources, `\x89PNG`, `OggS`, …) and pull files straight out. See
+[`common-misconfigurations.md`](common-misconfigurations.md) for the full list of
+ways this goes wrong, and [`verifying-encryption.md`](verifying-encryption.md) to
+confirm which layers are actually active in your build.
 
 A quick self-check: turning on real per-file encryption makes the pack
 **~1–2 MB bigger** (each encrypted file gains a ~40-byte header + padding). If the
@@ -115,8 +118,10 @@ The engine **must** hold the cleartext key in RAM to mount the PCK at startup, s
 Note: minidump **file offsets do not preserve RAM alignment**, so a blind
 file-offset-aligned scan misses the key. The scanner parses the dump's memory map
 (`Memory64List` / `MemoryList`) and scans each region at its **true virtual-address
-alignment** (heap allocations are 16-byte aligned), which both finds the key and
-cuts the search ~16×.
+alignment**. The key buffer is typically 8-byte aligned (Godot's allocator
+prepends a size header), occasionally 16 — so the scanner defaults to align-8 and
+falls back to align-1. The full story, including why rotating the key doesn't
+help, is in [`memory-key-recovery.md`](memory-key-recovery.md).
 
 This route is **format- and obfuscation-agnostic**: no matter how the key is
 hidden on disk, the running process must reconstruct it.
@@ -132,7 +137,9 @@ With the key:
 4. Write files out under their `res://` paths.
 
 Then optionally decompile `.gdc` → `.gd` and convert binary resources with
-[Godot RE Tools](https://github.com/GDRETools/gdsdecomp).
+[Godot RE Tools](https://github.com/GDRETools/gdsdecomp) — see
+[`gdre-notes.md`](gdre-notes.md) for its key/version/exact-length requirements,
+and [`gdc-format-notes.md`](gdc-format-notes.md) for the compiled-script layout.
 
 ## 6. Takeaways for defenders
 
@@ -142,4 +149,8 @@ Then optionally decompile `.gdc` → `.gd` and convert binary resources with
 - The key lives in memory at runtime; a memory dump recovers it in seconds unless
   the build specifically hardens key handling.
 
-See [`hardening.md`](hardening.md) for how to raise each of these bars.
+Related: [`hardening.md`](hardening.md) (how to raise each bar) ·
+[`verifying-encryption.md`](verifying-encryption.md) (confirm your encryption
+took effect) · [`common-misconfigurations.md`](common-misconfigurations.md)
+(the mistakes that cause the weaknesses above) ·
+[`defenders-checklist.md`](defenders-checklist.md) (one-page tick-list).
