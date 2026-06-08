@@ -100,6 +100,11 @@ N times" — which a blind dump almost certainly misses. Enhancements: keep the
 shares in separate translation units; derive one share at runtime (e.g. from a
 checksum of a code region) so it isn't a plain static array.
 
+> **Ready-to-apply reference for Godot 4.6.1-stable:** the
+> [`hardening/`](../hardening/) directory has a verified secure-wipe patch
+> (`patches/0001-secure-wipe-pck-key.patch`) plus the split-key storage recipe
+> and a share generator. Combine both, then prove it with the memory-dump scan.
+
 ### White-box AES (strongest vs memory dump)
 
 Replace the AES used for the PCK with a white-box implementation: the key is baked

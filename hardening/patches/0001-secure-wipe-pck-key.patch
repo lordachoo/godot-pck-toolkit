@@ -1,0 +1,80 @@
+--- a/core/io/file_access_encrypted.cpp
++++ b/core/io/file_access_encrypted.cpp
+@@ -41,6 +41,14 @@
+ 	}
+ }
+ 
++// Hardening: zero memory in a way the optimizer may not elide (unlike memset).
++static void _secure_zero(void *p_mem, size_t p_size) {
++	volatile uint8_t *vp = static_cast<volatile uint8_t *>(p_mem);
++	while (p_size--) {
++		*vp++ = 0;
++	}
++}
++
+ Error FileAccessEncrypted::open_and_parse(Ref<FileAccess> p_base, const Vector<uint8_t> &p_key, Mode p_mode, bool p_with_magic, const Vector<uint8_t> &p_iv) {
+ 	ERR_FAIL_COND_V_MSG(file.is_valid(), ERR_ALREADY_IN_USE, vformat("Can't open file while another file from path '%s' is open.", file->get_path_absolute()));
+ 	ERR_FAIL_COND_V(p_key.size() != 32, ERR_INVALID_PARAMETER);
+@@ -105,6 +113,12 @@
+ 			ctx.decrypt_cfb(ds, iv.ptrw(), data.ptrw(), data.ptrw());
+ 		}
+ 
++		// Hardening: the raw key is not needed after the schedule is built.
++		if (key.size()) {
++			_secure_zero(key.ptrw(), key.size());
++			key.clear();
++		}
++
+ 		data.resize(length);
+ 
+ 		unsigned char hash[16];
+@@ -170,6 +184,12 @@
+ 		data.clear();
+ 	}
+ 
++	// Hardening: never leave the key resident (covers MODE_WRITE_AES256).
++	if (key.size()) {
++		_secure_zero(key.ptrw(), key.size());
++		key.clear();
++	}
++
+ 	file.unref();
+ }
+ 
+--- a/core/io/file_access_pack.cpp
++++ b/core/io/file_access_pack.cpp
+@@ -36,6 +36,14 @@
+ #include "core/os/os.h"
+ #include "core/version.h"
+ 
++// Hardening: zero memory in a way the optimizer may not elide (unlike memset).
++static void _pck_secure_zero(void *p_mem, size_t p_size) {
++	volatile uint8_t *vp = static_cast<volatile uint8_t *>(p_mem);
++	while (p_size--) {
++		*vp++ = 0;
++	}
++}
++
+ Error PackedData::add_pack(const String &p_path, bool p_replace_files, uint64_t p_offset) {
+ 	for (int i = 0; i < sources.size(); i++) {
+ 		if (sources[i]->try_open_pack(p_path, p_replace_files, p_offset)) {
+@@ -329,6 +337,9 @@
+ 		}
+ 
+ 		Error err = fae->open_and_parse(f, key, FileAccessEncrypted::MODE_READ, false);
++		// Hardening: wipe the reconstructed key copy immediately after use.
++		_pck_secure_zero(key.ptrw(), key.size());
++		key.clear();
+ 		ERR_FAIL_COND_V_MSG(err, false, "Can't open encrypted pack directory.");
+ 		f = fae;
+ 	}
+@@ -534,6 +545,9 @@
+ 		}
+ 
+ 		Error err = fae->open_and_parse(f, key, FileAccessEncrypted::MODE_READ, false);
++		// Hardening: wipe the reconstructed key copy immediately after use.
++		_pck_secure_zero(key.ptrw(), key.size());
++		key.clear();
+ 		ERR_FAIL_COND_MSG(err, vformat(R"(Can't open encrypted pack-referenced file "%s" from pack "%s".)", p_path, pf.pack));
+ 		f = fae;
+ 		off = 0;

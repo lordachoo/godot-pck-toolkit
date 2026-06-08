@@ -94,6 +94,7 @@ python decompile_gdc_batch.py --gdre /path/to/gdre_tools.exe --recover /path/to/
 - [`docs/gdre-notes.md`](docs/gdre-notes.md) — using Godot RE Tools (`--bytecode`, exact-length, no key bruteforce)
 - [`docs/hardening.md`](docs/hardening.md) — how to make all of the above harder (the defensive playbook)
 - [`docs/defenders-checklist.md`](docs/defenders-checklist.md) — one-page hardening tick-list
+- [`hardening/`](hardening/) — **reference patches** for Godot 4.6.1-stable: secure-wipe the PCK key + split-key storage, with verification steps
 
 ## License
 

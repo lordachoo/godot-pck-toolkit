@@ -90,3 +90,5 @@ Nothing client-side stops it absolutely (the analog hole), but you can make the
 - **White-box AES** — the key never exists as discrete bytes in memory at all.
 
 Both require engine-level (custom export template) changes, not export settings.
+See [`../hardening/`](../hardening/) for ready-to-apply 4.6.1-stable reference
+patches (secure-wipe + split-key storage) and how to verify them with this tool.
