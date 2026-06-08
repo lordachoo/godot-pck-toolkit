@@ -50,6 +50,7 @@ sees — then [`docs/hardening.md`](docs/hardening.md) explains what actually he
 | `tools/extract_godot_pck.py` | Carve the embedded PCK from a PE executable + dump a header report. No key. |
 | `tools/recover_godot_key.py` | Brute-force the 32-byte AES key from the executable, verified against the directory MD5. |
 | `tools/extract_key_from_dump.py` | Recover the key from a process **memory dump** (minidump-aware, multi-core, alignment-aware). |
+| `tools/frida_keycatch.py` | Recover the key by **hooking the AES routine at runtime** — defeats "wipe the key after use" hardening (needs `frida`). See [post-wipe-attack-surface.md](docs/post-wipe-attack-surface.md). |
 | `tools/dump_game_memory.ps1` | Launch a game, let it mount its PCK, write a full-memory minidump, kill it. |
 | `tools/extract_godot_project.py` | Decrypt the directory and extract + per-file-decrypt every asset. |
 | `tools/decompile_gdc_batch.py` | Drive Godot RE Tools to decompile `.gdc`→`.gd` / full project recovery. |
@@ -97,6 +98,7 @@ python decompile_gdc_batch.py --gdre /path/to/gdre_tools.exe --recover /path/to/
 - [`docs/gdc-format-notes.md`](docs/gdc-format-notes.md) — compiled `.gdc` layout, exact-length carving, magic collisions
 - [`docs/gdre-notes.md`](docs/gdre-notes.md) — using Godot RE Tools (`--bytecode`, exact-length, no key bruteforce)
 - [`docs/hardening.md`](docs/hardening.md) — how to make all of the above harder (the defensive playbook)
+- [`docs/post-wipe-attack-surface.md`](docs/post-wipe-attack-surface.md) — the rung *above* a memory dump: runtime hooking / TTD / offline shares, and the counters
 - [`docs/defenders-checklist.md`](docs/defenders-checklist.md) — one-page hardening tick-list
 - [`hardening/`](hardening/) — **reference patches** for Godot 4.6.1-stable: secure-wipe the PCK key + split-key storage, with verification steps
 

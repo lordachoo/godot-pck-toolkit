@@ -71,13 +71,22 @@ python tools/extract_key_from_dump.py game.exe game.dmp --align 8
 - **No hit at align-1** → the resident-key hole is closed against this attack.
 - **Still a hit** → a copy survived; the reported dump offset shows where to look.
 
-## Honest limits
+## Honest limits — this wipe does NOT stop runtime hooking
 
-- Decryption is **lazy**: the key is reconstructed briefly on every encrypted-file
-  open, so a dump timed to a load could still catch a microsecond-lived copy, and
-  a determined attacker can hook the decrypt call. This defeats the **blind,
-  automated dump-and-scan**, not an attacker instrumenting the live process.
-- Eliminating even the transient copy needs **white-box AES** (the key never
-  exists as discrete bytes) — see [`../docs/hardening.md`](../docs/hardening.md).
+The wipe defeats the **blind, automated dump-and-scan**. It does **not** stop an
+attacker who instruments the live process: the key must still be handed to the AES
+routine, so hooking that call captures it at the moment of use — **demonstrated**,
+the key falls out in seconds even on a fully wiped build. See
+[`../docs/post-wipe-attack-surface.md`](../docs/post-wipe-attack-surface.md) for
+the working technique (`tools/frida_keycatch.py`), Time-Travel Debugging, and
+**offline reconstruction from the shares** (which needs no runtime at all).
+
+- The decisive next step is therefore **not more client-side wiping** but a
+  **server-held key share**: keep one of the XOR shares on your authenticated
+  server and fetch it per session. That makes offline reconstruction impossible
+  and forces any hook into a live, revocable session. (Pair with anti-debug /
+  virtualization to raise the hooking cost.)
+- Eliminating even the transient hooked copy needs **white-box AES** (the key
+  never exists as discrete bytes) — see [`../docs/hardening.md`](../docs/hardening.md).
 - Client-side protection is never absolute (the analog hole). The goal is to make
-  the automated, turnkey attack fail and force expensive manual RE.
+  the automated, turnkey attack fail and force expensive, per-session manual RE.
