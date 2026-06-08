@@ -1,0 +1,27 @@
+# Recovered / extracted output — never commit ripped content or keys
+out/
+recovered/
+extracted*/
+*.pck
+*.dmp
+*.bin
+*.hex
+key.*
+
+# Target binaries / dumps
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
