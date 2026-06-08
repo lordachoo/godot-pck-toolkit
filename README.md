@@ -56,6 +56,10 @@ sees — then [`docs/hardening.md`](docs/hardening.md) explains what actually he
 
 ## Quickstart
 
+**Prefer a menu?** Run [`run.sh`](run.sh) (bash/Linux/macOS/Git-Bash) or
+[`run.bat`](run.bat) (Windows) for an interactive front-end over all of the
+below — set a target once and pick actions from a list.
+
 ```bash
 pip install -r requirements.txt
 cd tools
