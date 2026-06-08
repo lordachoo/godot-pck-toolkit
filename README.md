@@ -41,10 +41,15 @@ sees — then [`docs/hardening.md`](docs/hardening.md) explains what actually he
 
 | Script | Purpose |
 |---|---|
-| `tools/godot_pck_common.py` | Shared PCK (v2/v3) parsing + AES-CFB helpers. No side effects. |
-| `tools/extract_godot_pck.py` | Carve the embedded PCK from a PE executable + dump a header report. No key needed. |
+| `tools/godot_pck_common.py` | Shared PCK (v2/v3) parsing, AES-CFB, and no-key carve/gdc helpers. No side effects. |
+| `tools/analyze.py` | **One-shot overview** of a build: header, signatures, encryption verdict. No key. |
+| `tools/check_encryption.py` | **Audit** whether per-file encryption actually protects contents. No key. |
+| `tools/carve_payloads.py` | Signature-carve payloads (GDSC/RSRC/…) from the pack body. No key. |
+| `tools/gdc_inspect.py` | Decompress a compiled `.gdc`, recover exact length + readable symbols/strings. |
+| `tools/pck_compare.py` | Diff two builds (before/after a hardening change). No key. |
+| `tools/extract_godot_pck.py` | Carve the embedded PCK from a PE executable + dump a header report. No key. |
 | `tools/recover_godot_key.py` | Brute-force the 32-byte AES key from the executable, verified against the directory MD5. |
-| `tools/extract_key_from_dump.py` | Recover the key from a process **memory dump** (minidump-aware, multi-core). |
+| `tools/extract_key_from_dump.py` | Recover the key from a process **memory dump** (minidump-aware, multi-core, alignment-aware). |
 | `tools/dump_game_memory.ps1` | Launch a game, let it mount its PCK, write a full-memory minidump, kill it. |
 | `tools/extract_godot_project.py` | Decrypt the directory and extract + per-file-decrypt every asset. |
 | `tools/decompile_gdc_batch.py` | Drive Godot RE Tools to decompile `.gdc`→`.gd` / full project recovery. |
@@ -52,8 +57,12 @@ sees — then [`docs/hardening.md`](docs/hardening.md) explains what actually he
 ## Quickstart
 
 ```bash
-pip install pycryptodome numpy
+pip install -r requirements.txt
 cd tools
+
+# 0) Quick no-key overview + encryption verdict (start here)
+python analyze.py /path/to/your_game.exe
+python check_encryption.py /path/to/your_game.exe
 
 # 1) Carve the embedded PCK and print a header report (no key required)
 python extract_godot_pck.py /path/to/your_game.exe --outdir ../out
@@ -78,7 +87,13 @@ python decompile_gdc_batch.py --gdre /path/to/gdre_tools.exe --recover /path/to/
 ## Documentation
 
 - [`docs/how-pck-encryption-works.md`](docs/how-pck-encryption-works.md) — the PCK format, the crypto, and the full recovery methodology
+- [`docs/memory-key-recovery.md`](docs/memory-key-recovery.md) — recovering the key from a memory dump, the "oracle", and **alignment handling**
+- [`docs/verifying-encryption.md`](docs/verifying-encryption.md) — how to confirm your encryption actually took effect
+- [`docs/common-misconfigurations.md`](docs/common-misconfigurations.md) — the frequent mistakes (missing `*`, directory-only, etc.)
+- [`docs/gdc-format-notes.md`](docs/gdc-format-notes.md) — compiled `.gdc` layout, exact-length carving, magic collisions
+- [`docs/gdre-notes.md`](docs/gdre-notes.md) — using Godot RE Tools (`--bytecode`, exact-length, no key bruteforce)
 - [`docs/hardening.md`](docs/hardening.md) — how to make all of the above harder (the defensive playbook)
+- [`docs/defenders-checklist.md`](docs/defenders-checklist.md) — one-page hardening tick-list
 
 ## License
 

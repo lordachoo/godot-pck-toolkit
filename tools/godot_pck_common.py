@@ -142,3 +142,104 @@ def parse_entries(plaintext: bytes, file_count: int, file_base: int) -> list:
             "flags": flags,
         })
     return entries
+
+
+# ---------------------------------------------------------------------------
+# No-key analysis helpers (content carving / encryption auditing)
+#
+# These work WITHOUT the key: they scan the file-data region of the pack for
+# file-type signatures. Whether those signatures are present tells you whether
+# file *contents* are encrypted (per-file encryption) or stored in cleartext.
+# ---------------------------------------------------------------------------
+
+# Magic bytes that appear at the start of common Godot payloads.
+SIGNATURES = {
+    "GDSC": b"GDSC",        # compiled GDScript (.gdc) bytecode
+    "RSRC": b"RSRC",        # binary resource (.res / .scn)
+    "RSCC": b"RSCC",        # compressed binary resource
+    "GST2": b"GST2",        # stream texture (.ctex / .stex)
+    "PNG":  b"\x89PNG",     # PNG image
+    "OggS": b"OggS",        # Ogg audio
+    "RIFF": b"RIFF",        # WAV audio
+}
+
+GDC_MAGIC = b"GDSC"
+ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+
+
+def body_region(data: bytes, hdr: dict) -> tuple:
+    """(start, end) of the file-data region: file_base .. dir_offset."""
+    return hdr["file_base"], hdr["dir_offset"]
+
+
+def find_magic_offsets(data: bytes, magic: bytes, start: int, end: int) -> list:
+    """All offsets of `magic` within [start, end)."""
+    out = []
+    i = data.find(magic, start, end)
+    while i != -1:
+        out.append(i)
+        i = data.find(magic, i + 1, end)
+    return out
+
+
+def carve_counts(data: bytes, hdr: dict) -> dict:
+    """Count each signature in the pack's file-data region (no key needed)."""
+    start, end = body_region(data, hdr)
+    return {name: len(find_magic_offsets(data, sig, start, end))
+            for name, sig in SIGNATURES.items()}
+
+
+def is_valid_gdc(data: bytes, off: int) -> bool:
+    """True if `off` looks like a real compiled-script header, not a byte fluke.
+
+    A real .gdc is: 'GDSC' | uint32 version | uint32 decompressed_size | zstd frame.
+    Coincidental 'GDSC' bytes inside other data almost never satisfy this.
+    """
+    if data[off:off + 4] != GDC_MAGIC:
+        return False
+    ver = struct.unpack_from("<I", data, off + 4)[0]
+    if not (1 <= ver <= 1000):
+        return False
+    return data[off + 12:off + 16] == ZSTD_MAGIC
+
+
+def count_valid_scripts(data: bytes, hdr: dict) -> tuple:
+    """(total GDSC magics, valid compiled scripts) in the file-data region.
+
+    `valid` counts only real, *un-encrypted* compiled scripts. If per-file
+    encryption covers scripts, this drops to ~0 (their bytes become ciphertext).
+    """
+    start, end = body_region(data, hdr)
+    offs = find_magic_offsets(data, GDC_MAGIC, start, end)
+    valid = sum(1 for o in offs if is_valid_gdc(data, o))
+    return len(offs), valid
+
+
+def gdc_decompress(blob: bytes) -> dict:
+    """Decompress a compiled-script (.gdc) tokenizer buffer.
+
+    `blob` may be over-carved (extra trailing bytes); the zstd frame is
+    self-delimiting so the exact compiled length is recovered too. Requires the
+    `zstandard` package. Returns {version, decompressed_size, buffer, exact_len}.
+    """
+    import zstandard
+    if blob[:4] != GDC_MAGIC:
+        raise ValueError("not a GDSC buffer")
+    version = struct.unpack_from("<I", blob, 4)[0]
+    dsize = struct.unpack_from("<I", blob, 8)[0]
+    comp = blob[12:]
+    dctx = zstandard.ZstdDecompressor().decompressobj()
+    buffer = dctx.decompress(comp)
+    exact_len = 12 + (len(comp) - len(dctx.unused_data))
+    return {"version": version, "decompressed_size": dsize,
+            "buffer": buffer, "exact_len": exact_len}
+
+
+def gdc_readable_strings(buffer: bytes, min_len: int = 4):
+    """Extract (identifiers, literals) from a decompressed .gdc tokenizer buffer."""
+    import re
+    strings = sorted(set(m.decode("latin1")
+                         for m in re.findall(rb"[ -~]{%d,}" % min_len, buffer)))
+    ident = [s for s in strings if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{3,}", s)]
+    lits = [s for s in strings if s not in ident]
+    return ident, lits
