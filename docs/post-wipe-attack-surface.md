@@ -2,7 +2,9 @@
 
 > Authorized/defensive use only. This documents a *working* attack against a build
 > that has **already applied the secure-wipe hardening** — i.e. the rung above a
-> blind memory dump. The headline mitigation (a **server-held key share**; see
+> blind memory dump. The headline mitigation (a **server-held key share** — full
+> reference implementation in
+> [`../hardening/server-key-share.md`](../hardening/server-key-share.md); see
 > "Counters") is the recommended next step and may still be in progress for a
 > given project.
 
@@ -75,7 +77,7 @@ dump timed to a decrypt — or a schedule-aware scan — recovers the key from i
 
 | Counter | Neutralizes | Reality |
 |---|---|---|
-| **Server-derived key share** (fetch one share per session from your authenticated server) | **#3 offline reconstruction** outright; makes **#1/#2** require a *live, authenticated, revocable* session | **The decisive move.** The offline binary can't rebuild the key; every extraction needs a real account you can rate-limit, fingerprint, and ban. Converts "crack once → share" into "need a live session each time." For a client that already talks to a server, it's natural. |
+| **Server-derived key share** (fetch one share per session from your authenticated server) | **#3 offline reconstruction** outright; makes **#1/#2** require a *live, authenticated, revocable* session | **The decisive move.** The offline binary can't rebuild the key; every extraction needs a real account you can rate-limit, fingerprint, and ban. Converts "crack once → share" into "need a live session each time." For a client that already talks to a server, it's natural. See [`../hardening/server-key-share.md`](../hardening/server-key-share.md) for a full reference implementation. |
 | **Code virtualization** (VMProtect / Themida) on the reconstruct + AES path | Raises the cost of **#1/#2** (hide/obfuscate the call so it can't be found or hooked easily) | Strongest *practical* anti-instrumentation. Beatable by experts, not by scripts. |
 | **Anti-debug / anti-inject / anti-Frida / anti-TTD** | Casual **#1/#2** | Cat-and-mouse; each check is individually bypassable. Detect HW breakpoints, known Frida/injection artifacts, timing anomalies; bail on detection. |
 | **White-box AES** | Removes the **#1** target (no discrete key exists even at use) | Big effort; breakable by white-box cryptanalysis (DCA/DFA) — specialist work. |

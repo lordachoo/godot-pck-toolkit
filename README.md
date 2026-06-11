@@ -108,6 +108,7 @@ python decompile_gdc_batch.py --gdre /path/to/gdre_tools.exe --recover /path/to/
 - [`docs/frida-key-hooking.md`](docs/frida-key-hooking.md) — step-by-step runtime key hooking with `find_aes_rvas.py` + `frida_keycatch.py`, **with example output** and the "when it finds nothing" diagnosis
 - [`docs/defenders-checklist.md`](docs/defenders-checklist.md) — one-page hardening tick-list
 - [`hardening/`](hardening/) — **reference patches** for Godot 4.6.1-stable: secure-wipe the PCK key + split-key storage, with verification steps
+- [`hardening/server-key-share.md`](hardening/server-key-share.md) — **full reference implementation** of a server-held key share (engine source *and* a Python server): the binary ships only `key ^ S`, the engine fetches `S` at startup, so **offline reconstruction and run-offline-then-hook both die** and builds become revocable
 
 ## License
 

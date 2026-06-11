@@ -25,7 +25,7 @@ reasons:
 
 Our scanner finds *any* of these. So a fix must address **all** of them.
 
-## Two layers
+## Three layers
 
 ### Layer 1 — secure-wipe the working copies  (patch, drop-in)
 
@@ -58,6 +58,18 @@ to generate the shares header.
 > Layer 2 their own way — but **Layer 1 is what they're usually missing**, and
 > without it the *assembled* key still lingers in memory.
 
+### Layer 3 — server-held key share  (kills offline reconstruction + offline hooking)
+
+Layers 1–2 are entirely client-side: they raise the cost of lifting the key from a
+running or dumped process, but the shares still ship inside the binary — so a
+determined attacker can reconstruct the key **offline**, or run offline and hook it.
+Layer 3 keeps **one XOR share on your server** and releases it only after the client
+connects, so the binary alone holds `key ^ S` (useless) and any extraction is forced
+into a live, logged, **revocable** session.
+
+Full reference implementation — engine-source changes *and* a Python server, for
+Godot 4.6.1 — is in [`server-key-share.md`](server-key-share.md).
+
 ## Verify it actually worked
 
 The toolkit is the test. After rebuilding the template and re-exporting:
@@ -82,10 +94,11 @@ the working technique (`tools/frida_keycatch.py`), Time-Travel Debugging, and
 **offline reconstruction from the shares** (which needs no runtime at all).
 
 - The decisive next step is therefore **not more client-side wiping** but a
-  **server-held key share**: keep one of the XOR shares on your authenticated
-  server and fetch it per session. That makes offline reconstruction impossible
-  and forces any hook into a live, revocable session. (Pair with anti-debug /
-  virtualization to raise the hooking cost.)
+  **server-held key share** (Layer 3 above — full reference in
+  [`server-key-share.md`](server-key-share.md)): keep one of the XOR shares on your
+  authenticated server and fetch it per session. That makes offline reconstruction
+  impossible and forces any hook into a live, revocable session. (Pair with
+  anti-debug / virtualization to raise the hooking cost.)
 - Eliminating even the transient hooked copy needs **white-box AES** (the key
   never exists as discrete bytes) — see [`../docs/hardening.md`](../docs/hardening.md).
 - Client-side protection is never absolute (the analog hole). The goal is to make
